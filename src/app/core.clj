@@ -10,10 +10,10 @@
   (/ x y)))
 
 ; target output
-(def target-output 191)
+(def target-output 537)
 
 ; terminals
-(def terminals [7 3 1 2 20 100])
+(def terminals [2 3 8 5 10 100])
 
 ; functions and their arities
 (def functions (zipmap '(+ - * pro-div)
@@ -47,7 +47,7 @@
 ; calculate error of the individual program tree
 (defn error
   [tree]
-  (Math/abs (- (evalute tree) target-output)))
+  (Math/abs (float (- (evalute tree) target-output))))
 
 ; utility function for calculating the size of the code tree
 (defn code-size [c]
@@ -104,7 +104,7 @@
 (defn select
   [population tournament-size]
   (let [pop-size (count population)]
-    (nth (sort-by-error population)
+    (nth population
          (apply min (repeatedly tournament-size #(rand-int pop-size))))))
 
 ; starts the evolution by producing a random population, sorting and evaluating
@@ -113,4 +113,20 @@
   [population-size]
   (println "The evolution has started ...")
   (loop [generation 0
-         population ()]))
+         population (sort-by-error (repeatedly population-size #(random-expression 4)))]
+    (let [best (first population)
+          min-error (error best)]
+      (println "========================================================================")
+      (println "Generation: " generation)
+      (println "Minimal error: " min-error)
+      (println "Best individual: " best)
+      (if (or (< min-error 0.05) (> generation 500))
+        (println "Evolution finished! Best individual: " best)
+        (recur
+          (inc generation)
+          (sort-by-error
+            (concat
+              (repeatedly (* 1/2 population-size) #(mutate (select population 10)))
+              (repeatedly (* 1/4 population-size) #(crossover (select population 10)
+                                                              (select population 10)))
+              (repeatedly (* 1/4 population-size) #(select population 10)))))))))
